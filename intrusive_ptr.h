@@ -38,7 +38,7 @@ public:
         add_ref();
     }
 
-    template <class Derived, typename = std::enable_if<std::is_base_of<T, Derived>::value>>
+    template <class Derived, typename = std::enable_if_t<std::is_base_of<T, Derived>{}>>
     intrusive_ptr(Derived * p) noexcept : ptr(p), wrapper(new ptr_wrapper(p)) {
         add_ref();
     }
@@ -47,17 +47,18 @@ public:
         add_ref();
     }
 
-    intrusive_ptr(intrusive_ptr && other) noexcept : ptr(other.ptr), wrapper(other.wrapper) {
+    intrusive_ptr(intrusive_ptr && other) noexcept : ptr(other.ptr), wrapper(new ptr_wrapper(other.wrapper)) {
         other.release();
     }
 
-    template <class Derived, typename = std::enable_if<std::is_base_of<T, Derived>::value>>
+    template <class Derived, typename = std::enable_if_t<std::is_base_of<T, Derived>{}>>
     intrusive_ptr(intrusive_ptr<Derived> & other) noexcept : ptr(other.ptr), wrapper(new ptr_wrapper(other.wrapper)) {
         add_ref();
     }
 
     ~intrusive_ptr() noexcept {
         release();
+        delete wrapper;
     }
 
     // Modification
@@ -112,7 +113,7 @@ private:
     }
 };
 
-template <class Derived, class Base, typename = std::enable_if<std::is_base_of<Base, Derived>::value>>
+template <class Derived, class Base, typename = std::enable_if_t<std::is_base_of<Base, Derived>{}>>
 intrusive_ptr<Derived> dynamic_pointer_cast(intrusive_ptr<Base> const & derived) noexcept {
     return intrusive_ptr<Derived>(dynamic_cast<Derived*>(derived.get()));
 }
