@@ -67,7 +67,9 @@ int main() {
     auto b_ptr = intrusive_ptr<B>(&b);      // 2
     auto a_derived = intrusive_ptr<A>(&b);  // 3
     auto c_ptr = intrusive_ptr<C>(&c);
-    auto cast = dynamic_pointer_cast<B>(b_as_A_ptr); // 4
+    auto cast = dynamic_pointer_cast<B>(b_as_A_ptr);
+    auto cast2 = cast;
+    auto cast3 = cast2;// 4
     std::cout << cast->get_refcnt() << std::endl;
 
     B new_b(5);

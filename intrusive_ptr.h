@@ -4,6 +4,9 @@
 #include <utility>
 #include <iostream>
 
+template<typename>
+class intrusive_ptr;
+
 class interface {
 public:
     virtual void add_ref() = 0;
@@ -17,20 +20,28 @@ class ptr_wrapper : public interface {
 public:
     T* ptr = nullptr;
     ptr_wrapper(T* p) : ptr(p) { }
-    ptr_wrapper(ptr_wrapper* p) : ptr(p->ptr) { }
+    ptr_wrapper(const ptr_wrapper* p) : ptr(p->ptr) { }
 
     void add_ref() { if (ptr) ptr->add_ref(); }
     void release() { if (ptr) ptr->release(); }
-    int get_refcnt() { if (ptr) ptr->get_refcnt(); }
+    int get_refcnt() { if (ptr) ptr ? ptr->get_refcnt() : 0; }
     ~ptr_wrapper() = default;
 };
 
 
 template <class T>
 class intrusive_ptr {
+    template<typename> friend class intrusive_ptr;
+    template<typename> friend class ptr_wrapper;
+
 private:
-    T* ptr;
-    interface* wrapper;
+    T* ptr = nullptr;
+    interface* wrapper = nullptr;
+
+    template<typename U>
+    intrusive_ptr(intrusive_ptr<U> const & p, T* ptr) noexcept : ptr(ptr), wrapper(new ptr_wrapper(p.wrapper)) {
+        add_ref();
+    }
 
 public:
     // Constructors & destructor
@@ -99,6 +110,8 @@ public:
       return ptr != nullptr;
     }
 
+    interface* get_wrapper() { return wrapper; }
+
 private:
     void add_ref() noexcept {
         wrapper->add_ref();
@@ -111,11 +124,16 @@ private:
     int get_refcnt() noexcept {
         return wrapper->get_refcnt();
     }
+
+public:
+    template <class Derived, class Base, typename>
+    friend intrusive_ptr<Derived> dynamic_pointer_cast(intrusive_ptr<Base> const & derived) noexcept;
 };
 
 template <class Derived, class Base, typename = std::enable_if_t<std::is_base_of<Base, Derived>{}>>
 intrusive_ptr<Derived> dynamic_pointer_cast(intrusive_ptr<Base> const & derived) noexcept {
-    return intrusive_ptr<Derived>(dynamic_cast<Derived*>(derived.get()));
+    return intrusive_ptr<Derived>(derived, dynamic_cast<Derived*>(derived.get()));
 }
+
 
 #endif // INTRUSIVE_PTR_H
